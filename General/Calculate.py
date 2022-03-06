@@ -35,6 +35,11 @@ def predictDe(train, test, allRandomHalf):
         le = preprocessing.LabelEncoder()
         data.iloc[:, l] = le.fit_transform(data.iloc[:, l])
         data.iloc[:, 0] = le.fit_transform(data.iloc[:, 0])
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        for col in range(data.shape[1]):
+            if isinstance(data.iloc[0, :][col], str):
+                data.iloc[:, col] = le.fit_transform(
+                    data.iloc[:, col])
 
         mergeRandom = pd.concat([data, allRandomHalf[index]], axis=0)
 
@@ -49,7 +54,11 @@ def predictDe(train, test, allRandomHalf):
         test_file = pd.read_excel(test[index], index_col=0)
         test_data = pd.DataFrame(test_file)
         test_X = test_data.iloc[:, :(test_data.shape[1])-1]
-
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        for col in range(test_X.shape[1]):
+            if isinstance(test_X.iloc[0, :][col], str):
+                test_X.iloc[:, col] = le.fit_transform(
+                    test_X.iloc[:, col])
         test_X.iloc[:, 0] = le.fit_transform(test_X.iloc[:, 0])
 
         test_y_predicted = clf.predict(test_X)

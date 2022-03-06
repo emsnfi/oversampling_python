@@ -15,6 +15,9 @@ import os
 from sklearn.cluster import KMeans
 from yellowbrick.cluster import KElbowVisualizer
 from collections import Counter
+from sklearn import preprocessing
+from sklearn.preprocessing import LabelEncoder
+
 # different mthod use case to identify
 
 
@@ -29,6 +32,7 @@ def RandomGenerate(train, ratio, method, path):
     alloverpolynom = []
     overpolynom = []
     randompolynom = []
+
     if ratio == 0:
         return []
     for ii, i in enumerate(train):
@@ -36,6 +40,14 @@ def RandomGenerate(train, ratio, method, path):
         randomIndex = []
         data = pd.read_excel(i, index_col=0)
         classCount, finaldata, output = preprocess(data)
+
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        le = preprocessing.LabelEncoder()
+        for col in range(finaldata.shape[1]-1):
+            if isinstance(finaldata.iloc[0, :][col], str):
+                finaldata.iloc[:, col] = le.fit_transform(
+                    finaldata.iloc[:, col])
+
         ''''different smote method'''
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -87,6 +99,12 @@ def CenterGenerate(train, ratio, method, path):
         data = pd.read_excel(i, index_col=0)
         #print(i, "traindata1", data)
         classCount, finaldata, output = preprocess(data)
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        le = preprocessing.LabelEncoder()
+        for col in range(finaldata.shape[1]-1):
+            if isinstance(finaldata.iloc[0, :][col], str):
+                finaldata.iloc[:, col] = le.fit_transform(
+                    finaldata.iloc[:, col])
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -154,6 +172,12 @@ def ElbowRandomGenerate(train, ratio, method, path):
         data = pd.read_excel(i, index_col=0)
         #print(i, "traindata1", data)
         classCount, finaldata, output = preprocess(data)
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        le = preprocessing.LabelEncoder()
+        for col in range(finaldata.shape[1]-1):
+            if isinstance(finaldata.iloc[0, :][col], str):
+                finaldata.iloc[:, col] = le.fit_transform(
+                    finaldata.iloc[:, col])
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -243,6 +267,12 @@ def ElbowCenterGenerate(train, ratio, method, path):
         data = pd.read_excel(i, index_col=0)
         #print(i, "traindata1", data)
         classCount, finaldata, output = preprocess(data)
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        le = preprocessing.LabelEncoder()
+        for col in range(finaldata.shape[1]-1):
+            if isinstance(finaldata.iloc[0, :][col], str):
+                finaldata.iloc[:, col] = le.fit_transform(
+                    finaldata.iloc[:, col])
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)

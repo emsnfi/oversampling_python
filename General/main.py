@@ -328,9 +328,15 @@ def singleMethod(train, test, row, column, element, path):
     start = time.process_time()
     for ii, i in enumerate(train):
         # print("loop", train, element)
+        le = preprocessing.LabelEncoder()
         data = pd.read_excel(i, index_col=0)
-        classCount, finaldata, output = RandomCal.preprocess(data)
 
+        classCount, finaldata, output = RandomCal.preprocess(data)
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+        for col in range(finaldata.shape[1]):
+            if isinstance(finaldata.iloc[0, :][col], str):
+                finaldata.iloc[:, col] = le.fit_transform(
+                    finaldata.iloc[:, col])
         X_polynom, y_polynom = RandomCal.synth(finaldata, output, element)
 
         clfDe = DecisionTreeClassifier()
@@ -342,7 +348,14 @@ def singleMethod(train, test, row, column, element, path):
         # 不然會有多出來的 unnamed column
         test_file = pd.read_excel(test[ii], index_col=0)
         test_data = pd.DataFrame(test_file)
+
         classCount_test, test_X, test_y = RandomCal.preprocess(test_data)
+
+        for col in range(test_X.shape[1]):
+            if isinstance(test_X.iloc[0, :][col], str):
+                test_X.iloc[:, col] = le.fit_transform(
+                    test_X.iloc[:, col])
+
         test_y_predicted_De = clfDe.predict(test_X)
         le = preprocessing.LabelEncoder()
         test_y_predicted_De = le.fit_transform(test_y_predicted_De)
@@ -394,7 +407,7 @@ if __name__ == "__main__":
         if i not in temp:
             temp.append(i)
     f = temp
-    imbalDataset = ["imb_IRhigherThan9p2"]
+    imbalDataset = ["imb_IRhigherThan9p3"]
     # array of all folder need to be read, there are train and test excel in it
     folderpath = data_process.get_excel(imbalDataset)
     cell = 2
