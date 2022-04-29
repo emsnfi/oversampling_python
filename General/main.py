@@ -1,3 +1,4 @@
+from typing_extensions import final
 from numpy.core.fromnumeric import size
 from openpyxl import load_workbook
 from openpyxl.styles import Font
@@ -17,9 +18,11 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 import statistics
 from sklearn.metrics import roc_auc_score
-from sklearn import svm
+from sklearn import svm, ensemble
 import time
 import datetime
+import math
+from xgboost import XGBClassifier
 
 # 每一種方式不同比例中最大準確率的改成紅色 todo
 # 計算時間 不同方法 不同比例的執行時間
@@ -75,7 +78,7 @@ def calculatetwomethod(train, test, row, path, approach, maxsingle, sheetName):
     end = 0
     tempappr = []  # 放要比較的數值(5,5,0 之間會比較)
     for index in range(len(m)):
-
+        startGenerate = time.process_time()
         if approach == 'random':
             print('m[index]', m[index])
             randompoly = RandomCal.RandomGenerate(
@@ -106,8 +109,9 @@ def calculatetwomethod(train, test, row, path, approach, maxsingle, sheetName):
             randomIPF = RandomCal.ElbowCenterGenerate(
                 train, int(m[index][2])*0.1, "SMOTEIPF", path)
         # start = datetime.datetime.now()
-        start = time.process_time()
-
+        # start = time.process_time()
+        endGenerate = time.process_time()
+        durGenerate = endGenerate - startGenerate
         allRandom = []
         temp = []
         maxmethod = 0
@@ -129,36 +133,54 @@ def calculatetwomethod(train, test, row, path, approach, maxsingle, sheetName):
 
         cell = cell + 1
         # 為了算個別 C4.5 跟 SVM 時間 所以先註解掉 SVM 的部分
-        meanDe = CA.predictDe(train, test, allRandom)
-        # meanSVM = CA.predictSVM(train, test, allRandom)
+        # starDe = time.process_time()
+        # meanDe = CA.predictDe(train, test, allRandom)
+        # endDe = time.process_time()
+        # durDe = durGenerate + (endDe-starDe)
 
-        end = time.process_time()
+        # starSVM = time.process_time()
+        # meanSVM = CA.predictSVM(train, test, allRandom)
+        # # meanRF = CA.predictRF(train, test, allRandom)
+        # endSVM = time.process_time()
+        # durSVM = durGenerate + (endSVM - starSVM)
+
+        starXG = time.process_time()
+        meanXG = CA.predictXG(train, test, allRandom)
+        endXG = time.process_time()
+        durXG = durGenerate + (endXG-starXG)
 
         # write in excel prepare
         # 時間
-        dur = end - start
 
-        wb = load_workbook('/Users/emily/Desktop/Research/test2-1.xlsx')
+        wb = load_workbook(
+            '/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
         # sheet = wb['Ensemble 三個方法 Random']
         # sheet Name
         sheet = wb[sheetName]
-        sheet.cell(row=1+id, column=1, value=fileName)
-        sheet.cell(row=1+id, column=cell, value=meanDe)
-        # sheet.cell(row=3+id, column=cell, value=meanSVM)
+        sheet.cell(row=1, column=1, value="parllel en3 XG")
+        sheet.cell(row=2+id, column=1, value=fileName)
+        sheet.cell(row=2+id, column=cell, value=meanXG)
+        # sheet.cell(row=4+id, column=cell, value=meanXG)
+        # sheet.cell(row=1+id, column=cell, value=meanRF)
         # 時間
-        sheet.cell(row=2+id, column=cell, value=dur)
+        # sheet.cell(row=3+id, column=cell, value=durDe)  # C4.5
+        # sheet.cell(row=5+id, column=cell, value=durSVM)  # SVM
+        sheet.cell(row=3+id, column=cell, value=durXG)  # XGboost
 
+        '''
         # 找最大值 並上紅色
-        ma = meanDe
+        # ma = meanDe
         # ma = meanSVM
-        tempappr.append(ma)
+        # ma = meanRF
+
+        # tempappr.append(ma)
 
         fontRed = Font(color='FF0000')  # point at red font
         fontBoldRed = Font(color='FF0000', bold=True)
         if ma > maxsingle:
 
-            sheet.cell(1+id, cell).font = fontBoldRed  # C4.5
-            # sheet.cell(3+id, cell).font = fontBoldRed  # SVM
+            # sheet.cell(1+id, cell).font = fontBoldRed  # C4.5
+            sheet.cell(3+id, cell).font = fontBoldRed  # SVM
 
             print('meanDe233', ma)
         if index == 2 or index == 8 or index == 14:
@@ -167,17 +189,18 @@ def calculatetwomethod(train, test, row, path, approach, maxsingle, sheetName):
                 print("new round3", tempappr)
                 maxindex = tempappr.index(maxcell)  # 最大值的 index
             # print('maxindex', maxindex)
-                # r = 3+id  # SVM
-                r = 1 + id  # C4.5
+                r = 3+id  # SVM
+                # r = 1 + id  # C4.5
                 c = cell - (len(tempappr) - maxindex) + 1
                 print('row3', r, '  column4', c)
                 sheet.cell(r, c).font = fontRed
 
                 print('meanDe111', maxcell)
             tempappr = []
+        '''
         # 若大於 singel method 則標粗體
 
-        wb.save('/Users/emily/Desktop/Research/test2-1.xlsx')
+        wb.save('/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
     os.chdir(originpath)
 
 
@@ -253,27 +276,30 @@ def calculatethreemethod(train, test, id, path, approach, maxsingle, sheetName):
 
         cell = cell + 1
         # 為了算個別 C4.5 跟 SVM 時間 所以先註解掉 SVM 的部分
-        meanDe = CA.predictDe(train, test, allRandom)
+        # meanDe = CA.predictDe(train, test, allRandom)
         # meanSVM = CA.predictSVM(train, test, allRandom)
+        meanXG = CA.predictXG(train, test, allRandom)
         end = time.process_time()
 
         # write in excel prepare
         # 時間
         dur = end - start
         dur = round(dur, 3)
-        wb = load_workbook('/Users/emily/Desktop/Research/test2-1.xlsx')
+        wb = load_workbook(
+            '/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
         # sheet = wb['Ensemble 三個方法 Random']
         # sheet = wb['Ensemble 三個方法 ElbowCenter']
         # sheet Name
         sheet = wb[sheetName]
         sheet.cell(row=1+id, column=1, value=fileName)
-        sheet.cell(row=1+id, column=cell, value=meanDe)
+        sheet.cell(row=1+id, column=cell, value=meanXG)
         # 時間
 
         sheet.cell(row=2+id, column=cell, value=dur)
         # sheet.cell(row=3+id, column=cell, value=meanSVM)
 
         # 找最大值 並上紅色
+        '''
         ma = meanDe
         # ma = meanSVM
         tempappr.append(ma)
@@ -301,8 +327,8 @@ def calculatethreemethod(train, test, id, path, approach, maxsingle, sheetName):
                 print('meanDe111', maxcell)
             tempappr = []
         # 若大於 singel method 則標粗體
-
-        wb.save('/Users/emily/Desktop/Research/test2-1.xlsx')
+        '''
+        wb.save('/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
     os.chdir(originpath)
 
 
@@ -322,6 +348,12 @@ def singleMethod(train, test, row, column, element, path):
     os.chdir(path)
     accuraciesDe = []
     accuraciesSVM = []
+    accuraciesXG = []
+
+    # time calculation
+    durDe = 0
+    durSVM = 0
+    durXG = 0
 
     '''different dataset '''
     # singlemethod = ['baseline', 'smote', 'poly', 'prow', 'SMOTEIPF']
@@ -332,19 +364,38 @@ def singleMethod(train, test, row, column, element, path):
         data = pd.read_excel(i, index_col=0)
 
         classCount, finaldata, output = RandomCal.preprocess(data)
+        # #
+        # for col in range(finaldata.shape[1]):
+        #     if isinstance(finaldata.iloc[0, :][col], str):
+        #         finaldata.iloc[:, col] = le.fit_transform(
+        #             finaldata.iloc[:, col])
+
         # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
-        for col in range(finaldata.shape[1]):
-            if isinstance(finaldata.iloc[0, :][col], str):
-                finaldata.iloc[:, col] = le.fit_transform(
-                    finaldata.iloc[:, col])
+        ch = finaldata.infer_objects()  # 轉出所有 內部元素的 type
+        chd = ch.dtypes  # 內部 array 的 type
+        for i in range(chd.shape[0]):
+            q = str(chd[i])
+            if q == 'object':
+                finaldata.iloc[:, i] = finaldata.iloc[:, i].apply(
+                    lambda col: str(col))
+                finaldata.iloc[:, i] = le.fit_transform(
+                    finaldata.iloc[:, i])
+
+        '''
+        for j in range(finaldata.shape[1]):
+            for k in range(finaldata.shape[0]):
+                # print(df.iloc[j,i])
+                if isinstance(finaldata.iloc[k, j], str):
+                    finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+                        lambda col: str(col))
+                    finaldata.iloc[:, j] = le.fit_transform(
+                        finaldata.iloc[:, j])
+                    break
+        '''
+
         X_polynom, y_polynom = RandomCal.synth(finaldata, output, element)
 
-        clfDe = DecisionTreeClassifier()
-        clfDe = clfDe.fit(X_polynom, y_polynom)
-
-        # clfSVM = svm.SVC(kernel='rbf', C=1, gamma='auto')
-        # clfSVM = clfSVM.fit(X_polynom, y_polynom)
-
+        # 處理 test data
         # 不然會有多出來的 unnamed column
         test_file = pd.read_excel(test[ii], index_col=0)
         test_data = pd.DataFrame(test_file)
@@ -356,41 +407,75 @@ def singleMethod(train, test, row, column, element, path):
                 test_X.iloc[:, col] = le.fit_transform(
                     test_X.iloc[:, col])
 
-        test_y_predicted_De = clfDe.predict(test_X)
         le = preprocessing.LabelEncoder()
+
+        '''build model'''
+        '''
+        # C4.5
+        starDe = time.process_time()
+        clfDe = DecisionTreeClassifier()
+        clfDe = clfDe.fit(X_polynom, y_polynom)
+        test_y_predicted_De = clfDe.predict(test_X)
         test_y_predicted_De = le.fit_transform(test_y_predicted_De)
+        endDe = time.process_time()
+        durDe = durDe + (endDe - starDe)
 
-        # test_y_predicted_SVM = clfSVM.predict(test_X)
-        # test_y_predicted_SVM = le.fit_transform(test_y_predicted_SVM)
+        # SVM
+        starSVM = time.process_time()
+        clfSVM = svm.SVC(kernel='rbf', C=1, gamma='auto')
+        clfSVM = clfSVM.fit(X_polynom, y_polynom)
+        test_y_predicted_SVM = clfSVM.predict(test_X)
+        test_y_predicted_SVM = le.fit_transform(test_y_predicted_SVM)
+        endSVM = time.process_time()
+        durSVM = durSVM + (endSVM - starSVM)
+        '''
+        # XGboost
+        starXG = time.process_time()
+        clfXG = XGBClassifier()
+        clfXG = clfXG.fit(X_polynom, y_polynom)
+        test_y_predicted_XG = clfXG.predict(test_X)
+        test_y_predicted_XG = le.fit_transform(test_y_predicted_XG)
+        endXG = time.process_time()
+        durXG = durXG + (endXG - starXG)
 
+        '''
         accuracyDe = roc_auc_score(test_y, test_y_predicted_De)
         accuraciesDe.append(accuracyDe)
 
-        # accuracySVM = roc_auc_score(test_y, test_y_predicted_SVM)
-        # accuraciesSVM.append(accuracySVM)
+        accuracySVM = roc_auc_score(test_y, test_y_predicted_SVM)
+        accuraciesSVM.append(accuracySVM)
+        '''
+        accuracyXG = roc_auc_score(test_y, test_y_predicted_XG)
+        accuraciesXG.append(accuracyXG)
 
-    meanDe = statistics.mean(accuraciesDe)
-    meanDe = round(meanDe, 3)
-    # meanSVM = statistics.mean(accuraciesSVM)
-    # meanSVM = round(meanSVM, 3)
-    end = time.process_time()
+    '''
+    meanDe = round(statistics.mean(accuraciesDe), 3)
+    meanSVM = round(statistics.mean(accuraciesSVM), 3)
+    '''
+    meanXG = round(statistics.mean(accuraciesXG), 3)
+
+    # end = time.process_time()
 
     # write in excel prepare
     # 時間
-    dur = end - start
-    wb = load_workbook('/Users/emily/Desktop/Research/test2-1.xlsx')
+
+    wb = load_workbook(
+        '/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
     # sheet = wb['Ensemble 三個方法 Random']
     sheet = wb['single']
-    sheet.cell(row=1+row, column=1, value=fileName)
-    sheet.cell(row=1+row, column=column, value=meanDe)
-    sheet.cell(row=2+row, column=column, value=dur)
-    # sheet.cell(row=3+row, column=column, value=meanSVM)
-    wb.save('/Users/emily/Desktop/Research/test2-1.xlsx')
+    sheet.cell(row=2+row, column=1, value=fileName)
+    # sheet.cell(row=2+row, column=column, value=meanDe)
+    # sheet.cell(row=4+row, column=column, value=meanSVM)
+    sheet.cell(row=2+row, column=column, value=meanXG)
+
+    sheet.cell(row=3+row, column=column, value=durXG)
+    # sheet.cell(row=5+row, column=column, value=durSVM)
+    wb.save('/Users/emily/Desktop/Research/ensmeble_data/parllelen3XG.xlsx')
 
     # print('C4.5 ', meanDe, '\n', 'SVM ', meanSVM)
     os.chdir(originpath)
-    return meanDe  # 回傳所有 single method 的值
-    # return meanSVM
+    # return meanDe, meanSVM  # 回傳所有 single method 的值
+    return meanXG
 
 
 if __name__ == "__main__":
@@ -407,7 +492,7 @@ if __name__ == "__main__":
         if i not in temp:
             temp.append(i)
     f = temp
-    imbalDataset = ["imb_IRhigherThan9p3"]
+    imbalDataset = ["parallel_dataset"]
     # array of all folder need to be read, there are train and test excel in it
     folderpath = data_process.get_excel(imbalDataset)
     cell = 2
@@ -490,26 +575,32 @@ if __name__ == "__main__":
                 train, test, id, column, element, path)  # 單一方法
             singlelist.append(accursingle)
             column = column + 1
-        maxsingle = max(singlelist)
-        print('max', maxsingle)
+        # maxsingle = max(singlelist)
+
+        print('single', singlelist)
+        maxsingle = 0  # 這裡先不在算誰最大
 
         # 三個方法的 Enemble 全部 四種 methods
         # 給single最大值到 calculatetwomethod的參數中
+
         print('--------- Single Done -------------')
+
         calculatethreemethod(train, test, id, path, 'random',
                              maxsingle, 'Ensemble 兩個方法 Random')
         print('--------- Random Done -------------')
+
         calculatethreemethod(train, test, id, path, 'center',
                              maxsingle, 'Ensemble 兩個方法 Center')
         print('--------- Center Done -------------')
         calculatethreemethod(train, test, id, path, 'elbowRandom',
                              maxsingle, 'Ensemble 兩個方法 ElbowRandom')
         print('--------- Elbow Random Done -------------')
+
         calculatethreemethod(train, test, id, path, 'elbowCenter',
                              maxsingle, 'Ensemble 兩個方法 ElbowCenter')
-
         """
-        兩個方法的 Enemble 全部 四種 methods
+
+        # 兩個方法的 Enemble 全部 四種 methods
         # 給single最大值到 calculatetwomethod的參數中
         print('--------- Single Done -------------')
         calculatetwomethod(train, test, id, path, 'random',
@@ -523,6 +614,6 @@ if __name__ == "__main__":
         print('--------- Elbow Random Done -------------')
         calculatetwomethod(train, test, id, path, 'elbowCenter',
                            maxsingle, 'Ensemble 兩個方法 ElbowCenter')
-                           
         """
+
         id = id+5

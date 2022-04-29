@@ -17,7 +17,7 @@ from yellowbrick.cluster import KElbowVisualizer
 from collections import Counter
 from sklearn import preprocessing
 from sklearn.preprocessing import LabelEncoder
-
+from scipy.spatial import distance
 # different mthod use case to identify
 
 
@@ -41,13 +41,33 @@ def RandomGenerate(train, ratio, method, path):
         data = pd.read_excel(i, index_col=0)
         classCount, finaldata, output = preprocess(data)
 
-        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
         le = preprocessing.LabelEncoder()
-        for col in range(finaldata.shape[1]-1):
-            if isinstance(finaldata.iloc[0, :][col], str):
-                finaldata.iloc[:, col] = le.fit_transform(
-                    finaldata.iloc[:, col])
+        # for col in range(finaldata.shape[1]-1):
+        #     if isinstance(finaldata.iloc[0, :][col], str):
+        #         finaldata.iloc[:, col] = le.fit_transform(
+        #             finaldata.iloc[:, col])
 
+        # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+
+        # for j in range(finaldata.shape[1]):
+        #     for k in range(finaldata.shape[0]):
+        #         # print(df.iloc[j,i])
+        #         if isinstance(finaldata.iloc[k, j], str):
+        #             finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+        #                 lambda col: str(col))
+        #             finaldata.iloc[:, j] = le.fit_transform(
+        #                 finaldata.iloc[:, j])
+        #             break
+
+        ch = finaldata.infer_objects()  # 轉出所有 內部元素的 type
+        chd = ch.dtypes  # 內部 array 的 type
+        for i in range(chd.shape[0]):
+            q = str(chd[i])
+            if q == 'object':
+                finaldata.iloc[:, i] = finaldata.iloc[:, i].apply(
+                    lambda col: str(col))
+                finaldata.iloc[:, i] = le.fit_transform(
+                    finaldata.iloc[:, i])
         ''''different smote method'''
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -101,10 +121,27 @@ def CenterGenerate(train, ratio, method, path):
         classCount, finaldata, output = preprocess(data)
         # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
         le = preprocessing.LabelEncoder()
-        for col in range(finaldata.shape[1]-1):
-            if isinstance(finaldata.iloc[0, :][col], str):
-                finaldata.iloc[:, col] = le.fit_transform(
-                    finaldata.iloc[:, col])
+
+        ch = finaldata.infer_objects()  # 轉出所有 內部元素的 type
+        chd = ch.dtypes  # 內部 array 的 type
+        for i in range(chd.shape[0]):
+            q = str(chd[i])
+            if q == 'object':
+                finaldata.iloc[:, i] = finaldata.iloc[:, i].apply(
+                    lambda col: str(col))
+                finaldata.iloc[:, i] = le.fit_transform(
+                    finaldata.iloc[:, i])
+
+        # for j in range(finaldata.shape[1]):
+        #     for k in range(finaldata.shape[0]):
+        #         # print(df.iloc[j,i])
+        #         if isinstance(finaldata.iloc[k, j], str):
+        #             finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+        #                 lambda col: str(col))
+        #             finaldata.iloc[:, j] = le.fit_transform(
+        #                 finaldata.iloc[:, j])
+        #             break
+
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -123,23 +160,29 @@ def CenterGenerate(train, ratio, method, path):
                 kmeans = KMeans(n_clusters=1)
                 dtemp = pd.DataFrame(overpolynom[ii])
                 X = dtemp.iloc[originlen:, :dtemp.shape[1]-1]  # 後來生成的
-
-                kmeans.fit(X)
-                y_kmeans = kmeans.predict(X)
+                Xcluster = np.array(X)
+                kmeans.fit(Xcluster)
+                # kmeans = kmeans.predict(Xcluster)
                 centers = kmeans.cluster_centers_
 
-                distance = []
+                # distance = []
                 X = X.astype('float64')
                 centers = centers.astype('float64')
                 tempindata = {}
                 distancesortemp = []
-                for i in range(X.shape[0]-1):  # 列
+                centers = np.array(centers)
+                # tempdf = np.array(tempdf.values)
+                Xcal = np.array(X.values)
+                print(centers)
+                for i in range(Xcal.shape[0]-1):  # 列
 
-                    distance = []
-                    temp = 0
-                    for j in range(X.shape[1]-1):  # 9 行
-                        temp = pow((centers[0][j]-X.iloc[i][j]), 2)
-                        tempindata[i] = temp
+                    # distance = []
+                    # temp = 0
+                    # for j in range(X.shape[1]-1):  # 9 行
+                    #     temp += pow((centers[0][j]-X.iloc[i][j]), 2)
+                    #     tempindata[i] = temp
+
+                    tempindata[i] = distance.euclidean(centers, Xcal[i])
 
                 distancesortemp = sorted(
                     tempindata.items(), key=lambda item: item[1])
@@ -174,10 +217,31 @@ def ElbowRandomGenerate(train, ratio, method, path):
         classCount, finaldata, output = preprocess(data)
         # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
         le = preprocessing.LabelEncoder()
-        for col in range(finaldata.shape[1]-1):
-            if isinstance(finaldata.iloc[0, :][col], str):
-                finaldata.iloc[:, col] = le.fit_transform(
-                    finaldata.iloc[:, col])
+        # for col in range(finaldata.shape[1]-1):
+        #     if isinstance(finaldata.iloc[0, :][col], str):
+        #         finaldata.iloc[:, col] = le.fit_transform(
+        #             finaldata.iloc[:, col])
+
+        # for j in range(finaldata.shape[1]):
+        #     for k in range(finaldata.shape[0]):
+        #         # print(df.iloc[j,i])
+        #         if isinstance(finaldata.iloc[k, j], str):
+        #             finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+        #                 lambda col: str(col))
+        #             finaldata.iloc[:, j] = le.fit_transform(
+        #                 finaldata.iloc[:, j])
+        #             break
+
+        ch = finaldata.infer_objects()  # 轉出所有 內部元素的 type
+        chd = ch.dtypes  # 內部 array 的 type
+        for i in range(chd.shape[0]):
+            q = str(chd[i])
+            if q == 'object':
+                finaldata.iloc[:, i] = finaldata.iloc[:, i].apply(
+                    lambda col: str(col))
+                finaldata.iloc[:, i] = le.fit_transform(
+                    finaldata.iloc[:, i])
+
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -254,6 +318,154 @@ def ElbowRandomGenerate(train, ratio, method, path):
     return randompolynom
 
 
+# def ElbowCenterGenerate(train, ratio, method, path):
+#     if ratio == 0:
+#         return []
+#     alloverpolynom = []
+#     overpolynom = []
+#     centerpolynom = []
+#     centerpolynomvalue = []
+#     countfor = 0
+#     for ii, i in enumerate(train):
+#         print("第幾個", i)
+#         data = pd.read_excel(i, index_col=0)
+#         #print(i, "traindata1", data)
+#         classCount, finaldata, output = preprocess(data)
+#         # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
+#         le = preprocessing.LabelEncoder()
+#         # for col in range(finaldata.shape[1]-1):
+#         #     if isinstance(finaldata.iloc[0, :][col], str):
+#         #         finaldata.iloc[:, col] = le.fit_transform(
+#         #             finaldata.iloc[:, col])
+
+#         for j in range(finaldata.shape[1]):
+#             for k in range(finaldata.shape[0]):
+#                 # print(df.iloc[j,i])
+#                 if isinstance(finaldata.iloc[k, j], str):
+#                     finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+#                         lambda col: str(col))
+#                     finaldata.iloc[:, j] = le.fit_transform(
+#                         finaldata.iloc[:, j])
+#                     break
+
+#         originlen = data.shape[0]  # 原始的 data 數量
+#         X_polynom, y_polynom = synth(
+#             finaldata, output, method)
+#         X_polynom = pd.DataFrame(X_polynom)
+#         y_polynom = pd.DataFrame(y_polynom)
+#         alloverpolynom = pd.concat(
+#             [X_polynom, y_polynom], axis=1)  # SMOTE 完後的數據
+#         overpolynom.append(alloverpolynom)
+#         tempcenterpolynom = []
+#         for i in range(len(classCount)):  # 不同類個別要產生多少數據才能平衡 目前是二分類
+#             origincount = int(classCount[i][1])
+#             print("原本", origincount)
+#             countfor = math.floor(
+#                 int(classCount[i][1])*ratio)  # 要產生多少數據  無條件捨去
+#         #randomIndex.extend([random.randint(len(data),len(X_smote)-1) for _ in range(count)])
+
+#             if(countfor > 0):
+#                 dtemp = pd.DataFrame(overpolynom[ii])
+#                 X = dtemp.iloc[originlen:, :dtemp.shape[1]-1]  # 後來生成的 都是小類
+#                 X.reset_index(inplace=True, drop=True)
+#             # print("要產生多少",countfor)
+#             # 計算應該分成幾群
+#                 model = KMeans()
+#                 visualizer = KElbowVisualizer(model, k=(1, 12))
+
+#                 # Fit the data to the visualizer
+#                 kmodel = visualizer.fit(X)
+#                 cluster_count = kmodel.elbow_value_  # 最佳要分成幾群
+#                 kmeans = KMeans(n_clusters=cluster_count)
+#                 kmeans.fit(X)
+#                 label = Counter(kmeans.labels_)  # 標籤分類狀況
+
+#                 # 不同群的比例
+#                 labelRatio = []
+#                 for key, element in sorted(label.items()):
+#                     labelRatio.append(element/origincount)
+#             # print(labelRatio)
+
+#             # 把分類標籤跟原始資料進行合併
+#                 klabel = pd.DataFrame(
+#                     {'label': kmeans.labels_})  # 建立一個欄位名為 label 的
+#                 df = pd.concat([X, klabel], axis=1)  # X 是後來生成的數據 類別都是小類
+#             # print(df)
+#                 centers = kmeans.cluster_centers_  # 各群群中心
+
+#                 distance = []
+#                 X = X.astype('float64')
+#                 centers = centers.astype('float64')
+#                 tempindata = {}
+#                 distancesortemp = []
+
+#             # 計算每個點跟各群中心的距離
+
+#                 ct = 0
+#             # print("分成",cluster_count,"群")
+#             # print("要產生",countfor)
+#                 tempcenterpolynom = []  # 清空
+#                 for ic in range(cluster_count):
+#                     ct += 1
+#                     tempindata = {}
+#                     temppolynom = []
+#                 # 把不同群過濾出來
+#                     # df 是 X 跟 label 結合後的 dataframe
+#                     tempdf = df[df['label'] == ic]
+#                     tempdf = tempdf.iloc[:, :-1]
+#                     tempdf = np.array(tempdf.values)
+#                 # allCluster.append(df[df['label']==ic])
+
+#                 # 計算每個點跟群中心的距離
+#                 '''
+#                     for i in range(tempdf.shape[0]-1):  # 列 也就是幾筆資料
+
+#                         distance = []
+#                         temp = 0  # 放算出來的距離
+#                         tempsum = 0
+#                         # 到前一欄 因為最後一欄為 label
+#                         for j in range(tempdf.shape[1]-2):
+#                             # 該欄位跟center欄位的距離
+#                             temp = pow((centers[ic][j]-tempdf.iloc[i][j]), 2)
+#                             tempsum = tempsum + temp
+#                         # print(tempsum)
+#                             tempindata[i] = tempsum
+#                     '''
+#                     centeric = np.array(centers[ic])
+#                     print(centeric.shape)
+#                     print(tempdf.shape)
+#                     for i in range(tempdf.shape[0]):  # 列 也就是幾筆資料
+
+#                         tempindata[i] = distance.euclidean(centeric, tempdf[i])
+
+#                     distancesortemp = sorted(
+#                         tempindata.items(), key=lambda item: item[1])
+#                 # print(distancesortemp)
+
+#                 # 要按照比例挑出資料
+
+#                     countforlabel = math.ceil(
+#                         countfor * labelRatio[ic])  # 按照比例 給不同的數量 不同群不同數量
+#                 # print("比例",labelRatio)
+#                     temppolynom.extend(
+#                         distancesortemp[:countforlabel])  # 該群所要的數量
+#                 # print("該群所要的數量",len(temppolynom))
+#             # tempcenterpolynom.extend(temppolynom) # 該份資料集所要的所有資料
+
+#                 # print("ct",ct)
+#                     tempcenterpolynom = tempcenterpolynom+temppolynom
+
+#                 centerpolynom.append(tempcenterpolynom)  # 所有資料集所選到的資料
+#             # print("真的有幾筆",len(centerpolynom[ii]))
+
+#         for i in range(len(centerpolynom)):
+#             alltemp = []
+#             for j in range(len(centerpolynom[i])):
+#                 indexpolynom = centerpolynom[i][j][0] + originlen - 1
+#                 alltemp.append(list(overpolynom[i].iloc[indexpolynom]))
+#             centerpolynomvalue.append(alltemp)
+#     return centerpolynomvalue
+
 def ElbowCenterGenerate(train, ratio, method, path):
     if ratio == 0:
         return []
@@ -269,10 +481,26 @@ def ElbowCenterGenerate(train, ratio, method, path):
         classCount, finaldata, output = preprocess(data)
         # 把非 numeric 的資料用 label encoder 轉成 numeric 資料
         le = preprocessing.LabelEncoder()
-        for col in range(finaldata.shape[1]-1):
-            if isinstance(finaldata.iloc[0, :][col], str):
-                finaldata.iloc[:, col] = le.fit_transform(
-                    finaldata.iloc[:, col])
+        # for j in range(finaldata.shape[1]):
+        #     for k in range(finaldata.shape[0]):
+        #         # print(df.iloc[j,i])
+        #         if isinstance(finaldata.iloc[k, j], str):
+        #             finaldata.iloc[:, j] = finaldata.iloc[:, j].apply(
+        #                 lambda col: str(col))
+        #             finaldata.iloc[:, j] = le.fit_transform(
+        #                 finaldata.iloc[:, j])
+        #             break
+
+        ch = finaldata.infer_objects()  # 轉出所有 內部元素的 type
+        chd = ch.dtypes  # 內部 array 的 type
+        for i in range(chd.shape[0]):
+            q = str(chd[i])
+            if q == 'object':
+                finaldata.iloc[:, i] = finaldata.iloc[:, i].apply(
+                    lambda col: str(col))
+                finaldata.iloc[:, i] = le.fit_transform(
+                    finaldata.iloc[:, i])
+
         originlen = data.shape[0]  # 原始的 data 數量
         X_polynom, y_polynom = synth(
             finaldata, output, method)
@@ -293,16 +521,17 @@ def ElbowCenterGenerate(train, ratio, method, path):
                 dtemp = pd.DataFrame(overpolynom[ii])
                 X = dtemp.iloc[originlen:, :dtemp.shape[1]-1]  # 後來生成的 都是小類
                 X.reset_index(inplace=True, drop=True)
+                Xcluster = np.array(X)
             # print("要產生多少",countfor)
             # 計算應該分成幾群
                 model = KMeans()
                 visualizer = KElbowVisualizer(model, k=(1, 12))
 
                 # Fit the data to the visualizer
-                kmodel = visualizer.fit(X)
+                kmodel = visualizer.fit(Xcluster)
                 cluster_count = kmodel.elbow_value_  # 最佳要分成幾群
                 kmeans = KMeans(n_clusters=cluster_count)
-                kmeans.fit(X)
+                kmeans.fit(Xcluster)
                 label = Counter(kmeans.labels_)  # 標籤分類狀況
 
                 # 不同群的比例
@@ -318,7 +547,6 @@ def ElbowCenterGenerate(train, ratio, method, path):
             # print(df)
                 centers = kmeans.cluster_centers_  # 各群群中心
 
-                distance = []
                 X = X.astype('float64')
                 centers = centers.astype('float64')
                 tempindata = {}
@@ -332,26 +560,33 @@ def ElbowCenterGenerate(train, ratio, method, path):
                 tempcenterpolynom = []  # 清空
                 for ic in range(cluster_count):
                     ct += 1
-
+                    tempindata = {}
                     temppolynom = []
                 # 把不同群過濾出來
                     # df 是 X 跟 label 結合後的 dataframe
                     tempdf = df[df['label'] == ic]
+                    tempdf = tempdf.iloc[:, :-1]
+                    tempdf = np.array(tempdf.values)
+                    centeric = np.array(centers[ic])
                 # allCluster.append(df[df['label']==ic])
 
                 # 計算每個點跟群中心的距離
-                    for i in range(tempdf.shape[0]-1):  # 列 也就是幾筆資料
+                    # for i in range(tempdf.shape[0]-1):  # 列 也就是幾筆資料
 
-                        distance = []
-                        temp = 0  # 放算出來的距離
-                        tempsum = 0
-                        # 到前一欄 因為最後一欄為 label
-                        for j in range(tempdf.shape[1]-2):
-                            # 該欄位跟center欄位的距離
-                            temp = pow((centers[ic][j]-tempdf.iloc[i][j]), 2)
-                            tempsum = tempsum + temp
-                        # print(tempsum)
-                            tempindata[i] = tempsum
+                    #     # distance = []
+                    #     temp = 0  # 放算出來的距離
+                    #     tempsum = 0
+                    #     # 到前一欄 因為最後一欄為 label
+                    #     for j in range(tempdf.shape[1]-2):
+                    #         # 該欄位跟center欄位的距離
+                    #         temp = pow((centers[ic][j]-tempdf.iloc[i][j]), 2)
+                    #         tempsum = tempsum + temp
+                    #     # print(tempsum)
+                    #         tempindata[i] = tempsum
+
+                    for i in range(tempdf.shape[0]):  # 列 也就是幾筆資料
+
+                        tempindata[i] = distance.euclidean(centeric, tempdf[i])
 
                     distancesortemp = sorted(
                         tempindata.items(), key=lambda item: item[1])
@@ -376,7 +611,7 @@ def ElbowCenterGenerate(train, ratio, method, path):
         for i in range(len(centerpolynom)):
             alltemp = []
             for j in range(len(centerpolynom[i])):
-                indexpolynom = centerpolynom[i][j][0] + originlen - 1
+                indexpolynom = centerpolynom[i][j][0] + originlen
                 alltemp.append(list(overpolynom[i].iloc[indexpolynom]))
             centerpolynomvalue.append(alltemp)
     return centerpolynomvalue
